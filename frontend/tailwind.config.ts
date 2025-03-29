@@ -39,6 +39,8 @@ module.exports = {
         tooltip: 'hsl(var(--tooltip))',
         'highlight-bg': 'hsl(var(--highlight-bg))',
         'highlight-text': 'hsl(var(--highlight-text))',
+        card: 'hsl(var(--card))',
+        'card-foreground': 'hsl(var(--card-foreground))',
       },
       borderRadius: {
         lg: 'var(--radius)',

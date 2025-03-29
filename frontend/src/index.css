@@ -13,95 +13,118 @@ body {
 @layer base {
   :root {
     /* Colores claros - Tema Claro */
-    --background: 0 0% 97%; /* Blanco */
-    --foreground: 0 0% 3.9%; /* Casi negro (muy oscuro) */
+    --background: 0, 0%, 96%;
+    /* Blanco */
+    --foreground: 0, 0%, 3.9%;
+    /* Casi negro (muy oscuro) */
 
-    --highlight-bg: 210 100% 96%; /* Azul claro para fondo */
-    --highlight-text: 210 100% 40%; /* Azul fuerte para texto */
+    --highlight-bg: 210, 100%, 96%;
+    /* Azul claro para fondo */
+    --highlight-text: 210, 100%, 40%;
+    /* Azul fuerte para texto */
 
-    --card: 0 0% 100%; /* Blanco */
-    --card-foreground: 222.2 84% 4.9%; /* Azul muy oscuro */
+    --card: 0, 0%, 99%;
+    /* Gris oscuro */
+    --card-foreground: 222.2, 84%, 4.9%;
+    /* Azul muy oscuro */
 
-    --popover: 0 0% 100%; /* Blanco */
-    --popover-foreground: 222.2 84% 4.9%; /* Azul muy oscuro */
+    --popover: 0, 0%, 100%;
+    /* Blanco */
+    --popover-foreground: 222.2, 84%, 4.9%;
+    /* Azul muy oscuro */
 
-    --primary: 222.2 47.4% 11.2%; /* Azul oscuro */
-    --primary-foreground: 210 40% 98%; /* Muy claro casi blanco */
+    --primary: 222.2, 47.4%, 11.2%;
+    /* Azul oscuro */
+    --primary-foreground: 210, 40%, 98%;
+    /* Muy claro casi blanco */
 
-    --secondary: 210 40% 96.1%; /* Azul muy claro */
-    --secondary-foreground: 222.2 47.4% 11.2%; /* Azul oscuro */
+    --secondary: 210, 40%, 96.1%;
+    /* Azul muy claro */
+    --secondary-foreground: 222.2, 47.4%, 11.2%;
+    /* Azul oscuro */
 
-    --muted: 210 40% 96.1%; /* Azul muy claro */
-    --muted-foreground: 215.4 16.3% 46.9%; /* Gris azulado */
+    --muted: 210, 40%, 96.1%;
+    /* Azul muy claro */
+    --muted-foreground: 215.4, 16.3%, 46.9%;
+    /* Gris azulado */
 
-    --accent: 210 40% 96.1%; /* Azul muy claro */
-    --accent-foreground: 222.2 47.4% 11.2%; /* Azul oscuro */
+    --accent: 210, 40%, 96.1%;
+    /* Azul muy claro */
+    --accent-foreground: 222.2, 47.4%, 11.2%;
+    /* Azul oscuro */
 
-    --destructive: 0 84.2% 60.2%; /* Rojo fuerte */
-    --destructive-foreground: 210 40% 98%; /* Muy claro casi blanco */
+    --destructive: 0, 84.2%, 60.2%;
+    /* Rojo fuerte */
+    --destructive-foreground: 210, 40%, 98%;
+    /* Muy claro casi blanco */
 
-    --border: 214.3 31.8% 91.4%; /* Gris muy claro */
-    --input: 214.3 31.8% 91.4%; /* Gris muy claro */
-    --ring: 222.2 84% 4.9%; /* Azul muy oscuro */
-    --tooltip: 0 0% 10%;
+    --border: 214.3, 31.8%, 91.4%;
+    /* Gris muy claro */
+    --input: 214.3, 31.8%, 91.4%;
+    /* Gris muy claro */
+    --ring: 222.2, 84%, 4.9%;
+    /* Azul muy oscuro */
+    --tooltip: 0, 0%, 10%;
 
     --radius: 0.5rem;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
+    --chart-1: 12, 76%, 61%;
+    --chart-2: 173, 58%, 39%;
+    --chart-3: 197, 37%, 24%;
+    --chart-4: 43, 74%, 66%;
+    --chart-5: 27, 87%, 67%;
     --radius: 0.5rem;
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-background: 0, 0%, 98%;
+    --sidebar-foreground: 240, 5.3%, 26.1%;
+    --sidebar-primary: 240, 5.9%, 10%;
+    --sidebar-primary-foreground: 0, 0%, 98%;
+    --sidebar-accent: 240, 4.8%, 95.9%;
+    --sidebar-accent-foreground: 240, 5.9%, 10%;
+    --sidebar-border: 220, 13%, 91%;
+    --sidebar-ring: 217.2, 91.2%, 59.8%;
   }
 
   .dark {
     /* Colores oscuros - Tema Oscuro */
 
-    --highlight-bg: 220 40% 15%; /* Azul oscuro para fondo */
-    --highlight-text: 210 60% 70%; /* Azul claro para texto */
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --tooltip: 0 0% 98%;
+    --highlight-bg: 220, 40%, 15%;
+    /* Azul oscuro para fondo */
+    --highlight-text: 210, 60%, 70%;
+    /* Azul claro para texto */
+    --background: 0, 0%, 3.9%;
+    --foreground: 0, 0%, 98%;
+    --tooltip: 0, 0%, 98%;
 
     --radius: 0.5rem;
-    --card: 0 0% 12%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --card: 0, 0%, 12%;
+    --card-foreground: 0, 0%, 98%;
+    --popover: 0, 0%, 3.9%;
+    --popover-foreground: 0, 0%, 98%;
+    --primary: 0, 0%, 98%;
+    --primary-foreground: 0, 0%, 9%;
+    --secondary: 0, 0%, 14.9%;
+    --secondary-foreground: 0, 0%, 98%;
+    --muted: 0, 0%, 14.9%;
+    --muted-foreground: 0, 0%, 63.9%;
+    --accent: 0, 0%, 14.9%;
+    --accent-foreground: 0, 0%, 98%;
+    --destructive: 0, 62.8%, 30.6%;
+    --destructive-foreground: 0, 0%, 98%;
+    --border: 0, 0%, 14.9%;
+    --input: 0, 0%, 14.9%;
+    --ring: 0, 0%, 83.1%;
+    --chart-1: 220, 70%, 50%;
+    --chart-2: 160, 60%, 45%;
+    --chart-3: 30, 80%, 55%;
+    --chart-4: 280, 65%, 60%;
+    --chart-5: 340, 75%, 55%;
+    --sidebar-background: 240, 5.9%, 10%;
+    --sidebar-foreground: 240, 4.8%, 95.9%;
+    --sidebar-primary: 224.3, 76.3%, 48%;
+    --sidebar-primary-foreground: 0, 0%, 100%;
+    --sidebar-accent: 240, 3.7%, 15.9%;
+    --sidebar-accent-foreground: 240, 4.8%, 95.9%;
+    --sidebar-border: 240, 3.7%, 15.9%;
+    --sidebar-ring: 217.2, 91.2%, 59.8%;
   }
 }
 
@@ -110,4 +133,10 @@ body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
   }
+}
+
+/* Agregamos una clase específica para la tarjeta */
+.card {
+  background-color: hsl(var(--card));
+  color: hsl(var(--card-foreground));
 }

@@ -21,7 +21,7 @@ export function FakeNewsDetector() {
   const [activeTab, setActiveTab] = useState('analyze');
 
   return (
-    <div className="bg-[hsl(var(--card))] text-card-foreground rounded-lg shadow-lg p-6 max-w-6xl mx-auto">
+    <div className="bg-[hsl(var(--card))] text-[hsl(var(--card-foreground))] rounded-lg shadow-lg p-6 max-w-6xl mx-auto">
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center">
           <Zap className="h-6 w-6 text-primary mr-2" />

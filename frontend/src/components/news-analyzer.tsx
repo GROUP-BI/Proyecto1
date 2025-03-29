@@ -10,6 +10,7 @@ import {
   Share2,
 } from 'lucide-react';
 import { useState } from 'react';
+import { analyzeNews as apiAnalyzeNews, NewsItem } from '../lib/api';
 import { mockNewsArticles } from '../lib/mock-data';
 import type { AnalysisResult } from '../lib/types';
 import { KeywordHighlighter } from './keyword-highlighter';
@@ -61,56 +62,46 @@ export function NewsAnalyzer() {
     setError(null);
 
     try {
-      // In a real application, this would be an API call to your backend
-      // const response = await fetch('/api/analyze', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ text: newsText }),
-      // })
-      // const data = await response.json()
+      // Creamos el objeto para la petición API
+      const newsItem: NewsItem = {
+        id: `news-${Date.now()}`,
+        text: newsText
+      };
 
-      // Simulating API response for demonstration
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // Llamamos a la API
+      const data = await apiAnalyzeNews([newsItem]);
 
-      // Generate a mock result based on the text content
-      const isFake =
-        newsText.toLowerCase().includes('shocking') ||
-        newsText.toLowerCase().includes('secret') ||
-        newsText.toLowerCase().includes('conspiracy') ||
-        Math.random() > 0.6;
+      // Extraemos la primera predicción del array
+      const prediction = data.predictions[0];
 
-      const mockResult: AnalysisResult = {
-        id: `analysis-${Date.now()}`,
+      // Generamos un resultado basado en la respuesta de la API
+      const apiResult: AnalysisResult = {
+        id: prediction.id.toString(),
         timestamp: new Date().toISOString(),
         text: newsText,
-        prediction: isFake ? 'FAKE' : 'REAL',
-        probability: isFake
-          ? 0.7 + Math.random() * 0.25
-          : 0.65 + Math.random() * 0.3,
-        keywords: extractKeywords(newsText),
-        sentimentScore: Math.random() * 2 - 1, // Range from -1 to 1
+        prediction: prediction.prediction,
+        probability: prediction.probability,
+        keywords: extractKeywords(newsText), // Mantenemos esta función por ahora
+        sentimentScore: Math.random() * 2 - 1, // Valores temporales para campos que la API no devuelve
         emotionalTone: {
           anger: Math.random() * 0.5,
-          fear: isFake ? Math.random() * 0.7 : Math.random() * 0.3,
+          fear: prediction.prediction === 'FAKE' ? Math.random() * 0.7 : Math.random() * 0.3,
           joy: Math.random() * 0.4,
           sadness: Math.random() * 0.3,
-          surprise: isFake ? Math.random() * 0.8 : Math.random() * 0.4,
+          surprise: prediction.prediction === 'FAKE' ? Math.random() * 0.8 : Math.random() * 0.4,
         },
-        sourceCredibility: isFake
+        sourceCredibility: prediction.prediction === 'FAKE'
           ? Math.random() * 0.4
           : 0.6 + Math.random() * 0.4,
-        factualConsistency: isFake
+        factualConsistency: prediction.prediction === 'FAKE'
           ? Math.random() * 0.5
           : 0.7 + Math.random() * 0.3,
       };
 
-      setResult(mockResult);
-
-      // In a real app, you would save this to history
-      // saveToHistory(mockResult)
+      setResult(apiResult);
     } catch (err) {
-      setError('Failed to analyze the news. Please try again.');
-      console.error(err);
+      console.error('Error:', err);
+      setError(err instanceof Error ? err.message : 'Error al analizar la noticia. Inténtalo de nuevo.');
     } finally {
       setIsAnalyzing(false);
     }
@@ -467,11 +458,10 @@ export function NewsAnalyzer() {
               </h4>
               <p className="text-sm text-slate-600 dark:text-slate-400">
                 {result.prediction === 'FAKE'
-                  ? `This content shows several indicators of potentially misleading information. The emotional tone is heightened${
-                      result.emotionalTone.fear > 0.5
-                        ? ', particularly in fear and surprise,'
-                        : ''
-                    } and the factual consistency score is low. The source credibility analysis suggests caution when sharing this information.`
+                  ? `This content shows several indicators of potentially misleading information. The emotional tone is heightened${result.emotionalTone.fear > 0.5
+                    ? ', particularly in fear and surprise,'
+                    : ''
+                  } and the factual consistency score is low. The source credibility analysis suggests caution when sharing this information.`
                   : `This content appears to be factually consistent with a balanced emotional tone. The source credibility is good, and the analysis shows minimal indicators of misinformation. As always, it's good practice to verify with additional sources.`}
               </p>
             </div>
