@@ -1,31 +1,42 @@
-"use client"
+'use client';
 
-import { useState } from "react"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs"
-import { NewsAnalyzer } from "./news-analyzer"
-import { BatchAnalyzer } from "./batch-analyzer"
-import { ModelTrainer } from "./model-trainer"
-import { ThemeToggle } from "./theme-toggle"
-import { HistoryView } from "./history-view"
-import { InsightsView } from "./insights-view"
-import { BarChart3, FileText, History, Layers, Settings, Zap } from "lucide-react"
+import {
+  BarChart3,
+  FileText,
+  History,
+  Layers,
+  Settings,
+  Zap,
+} from 'lucide-react';
+import { useState } from 'react';
+import { BatchAnalyzer } from './batch-analyzer';
+import { HistoryView } from './history-view';
+import { InsightsView } from './insights-view';
+import { ModelTrainer } from './model-trainer';
+import { NewsAnalyzer } from './news-analyzer';
+import { ThemeToggle } from './theme-toggle';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 
 export function FakeNewsDetector() {
-  const [activeTab, setActiveTab] = useState("analyze")
+  const [activeTab, setActiveTab] = useState('analyze');
 
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6 max-w-6xl mx-auto">
+    <div className="bg-[hsl(var(--card))] text-card-foreground rounded-lg shadow-lg p-6 max-w-6xl mx-auto">
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center">
-          <Zap className="h-6 w-6 text-blue-500 mr-2" />
-          <h2 className="text-2xl font-semibold text-slate-800 dark:text-slate-100">
+          <Zap className="h-6 w-6 text-primary mr-2" />
+          <h2 className="text-2xl font-semibold">
             Political News Analysis Platform
           </h2>
         </div>
         <ThemeToggle />
       </div>
 
-      <Tabs defaultValue="analyze" value={activeTab} onValueChange={setActiveTab}>
+      <Tabs
+        defaultValue="analyze"
+        value={activeTab}
+        onValueChange={setActiveTab}
+      >
         <TabsList className="grid w-full grid-cols-5 mb-6">
           <TabsTrigger value="analyze" className="flex items-center">
             <FileText className="h-4 w-4 mr-2" />
@@ -70,6 +81,5 @@ export function FakeNewsDetector() {
         </TabsContent>
       </Tabs>
     </div>
-  )
+  );
 }
-
