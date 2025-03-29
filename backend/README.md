@@ -59,7 +59,7 @@ El objetivo de esta etapa es automatizar el pipeline de ML, exponerlo a través 
 Para iniciar la API localmente usando Uvicorn:
 
 ```bash
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
+uvicorn main:app --reload --host localhost --port 8000
 ```
 
 * `--reload`: Reinicia automáticamente el servidor cuando detecta cambios en el código (útil para desarrollo).
