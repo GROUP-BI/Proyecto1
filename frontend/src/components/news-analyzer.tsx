@@ -13,8 +13,6 @@ import { useState } from 'react';
 import { analyzeNews as apiAnalyzeNews, NewsItem } from '../lib/api';
 import { mockNewsArticles } from '../lib/mock-data';
 import type { AnalysisResult } from '../lib/types';
-import { KeywordHighlighter } from './keyword-highlighter';
-import { SentimentChart } from './sentiment-chart';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
@@ -28,7 +26,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from './ui/select';
-import { Separator } from './ui/separator';
 import { Textarea } from './ui/textarea';
 import {
   Tooltip,
@@ -318,21 +315,18 @@ export function NewsAnalyzer() {
                     : 'Likely Authentic News'}
                 </h3>
               </div>
-              <Badge
-                variant={
-                  result.prediction === 'FAKE' ? 'destructive' : 'default'
-                }
-              >
+              <Badge variant={result.prediction === 'FAKE' ? 'destructive' : 'default'}>
                 {result.prediction}
               </Badge>
             </div>
 
             <div className="grid md:grid-cols-2 gap-6">
               <div className="space-y-4">
+                {/* Confidence (probability) */}
                 <div>
                   <div className="flex justify-between mb-1">
                     <span className="text-sm text-slate-600 dark:text-slate-400">
-                      Confidence
+                      Probability of being true
                     </span>
                     <span className="text-sm font-medium">
                       {Math.round(result.probability * 100)}%
@@ -340,91 +334,17 @@ export function NewsAnalyzer() {
                   </div>
                   <Progress
                     value={result.probability * 100}
-                    className={
-                      result.prediction === 'FAKE'
-                        ? 'text-red-500'
-                        : 'text-green-500'
-                    }
+                    className={result.prediction === 'FAKE' ? 'text-red-500' : 'text-green-500'}
                   />
                 </div>
 
-                <div>
-                  <div className="flex justify-between mb-1">
-                    <span className="text-sm text-slate-600 dark:text-slate-400">
-                      Source Credibility
-                    </span>
-                    <span className="text-sm font-medium">
-                      {Math.round(result.sourceCredibility * 100)}%
-                    </span>
-                  </div>
-                  <Progress
-                    value={result.sourceCredibility * 100}
-                    className={
-                      result.sourceCredibility > 0.5
-                        ? 'text-green-500'
-                        : 'text-amber-500'
-                    }
-                  />
-                </div>
-
-                <div>
-                  <div className="flex justify-between mb-1">
-                    <span className="text-sm text-slate-600 dark:text-slate-400">
-                      Factual Consistency
-                    </span>
-                    <span className="text-sm font-medium">
-                      {Math.round(result.factualConsistency * 100)}%
-                    </span>
-                  </div>
-                  <Progress
-                    value={result.factualConsistency * 100}
-                    className={
-                      result.factualConsistency > 0.6
-                        ? 'text-green-500'
-                        : 'text-amber-500'
-                    }
-                  />
-                </div>
-
-                <div>
-                  <h4 className="text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">
-                    Emotional Tone Analysis
-                  </h4>
-                  <div className="grid grid-cols-5 gap-2">
-                    {Object.entries(result.emotionalTone).map(
-                      ([emotion, value]) => (
-                        <div key={emotion} className="text-center">
-                          <div className="h-20 bg-slate-100 dark:bg-slate-700 rounded-md relative">
-                            <div
-                              className="absolute bottom-0 left-0 right-0 bg-blue-500 rounded-md"
-                              style={{ height: `${value * 100}%` }}
-                            ></div>
-                          </div>
-                          <p className="text-xs mt-1 capitalize">{emotion}</p>
-                        </div>
-                      ),
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <h4 className="text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">
-                    Sentiment Analysis
-                  </h4>
-                  <SentimentChart sentimentScore={result.sentimentScore} />
-                </div>
-
+                {/* Keywords */}
                 {result.keywords && result.keywords.length > 0 && (
                   <div>
-                    <div className="flex items-center mb-2">
-                      <Info className="h-4 w-4 mr-2 text-blue-500" />
-                      <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                        Key indicators detected:
-                      </h4>
-                    </div>
-                    <div className="flex flex-wrap gap-2 mb-4">
+                    <h4 className="text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">
+                      Key indicators detected:
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
                       {result.keywords.map((keyword, index) => (
                         <Badge
                           key={index}
@@ -437,37 +357,14 @@ export function NewsAnalyzer() {
                     </div>
                   </div>
                 )}
-
-                <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-md">
-                  <h4 className="text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">
-                    Text with highlighted indicators:
-                  </h4>
-                  <KeywordHighlighter
-                    text={newsText}
-                    keywords={result.keywords}
-                  />
-                </div>
               </div>
-            </div>
 
-            <Separator className="my-4" />
-
-            <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded-md">
-              <h4 className="text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">
-                Analysis Summary
-              </h4>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                {result.prediction === 'FAKE'
-                  ? `This content shows several indicators of potentially misleading information. The emotional tone is heightened${result.emotionalTone.fear > 0.5
-                    ? ', particularly in fear and surprise,'
-                    : ''
-                  } and the factual consistency score is low. The source credibility analysis suggests caution when sharing this information.`
-                  : `This content appears to be factually consistent with a balanced emotional tone. The source credibility is good, and the analysis shows minimal indicators of misinformation. As always, it's good practice to verify with additional sources.`}
-              </p>
+              {/* Se elimina la columna que mostraba otros insights */}
             </div>
           </CardContent>
         </Card>
       )}
+
     </div>
   );
 }

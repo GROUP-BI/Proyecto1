@@ -1,10 +1,10 @@
 # pipeline/pipeline.py
-import csv
 import logging
 
 import joblib
 import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 
@@ -88,11 +88,18 @@ def build_pipeline() -> Pipeline:
             ("tfidf", TfidfVectorizer(max_features=TFIDF_MAX_FEATURES)),
             (
                 "clf",
-                LogisticRegression(solver=LOGREG_SOLVER, random_state=RANDOM_STATE),
+                (
+                    "clf",
+                    RandomForestClassifier(
+                        random_state=RANDOM_STATE,
+                        n_estimators=100,
+                        max_depth=None,
+                        min_samples_split=6,
+                        max_features="sqrt",
+                        n_jobs=-1,
+                    ),
+                ),
             ),
-            # Si usaras otro clasificador, cámbialo aquí:
-            # ('clf', DecisionTreeClassifier(random_state=RANDOM_STATE))
-            # ('clf', RandomForestClassifier(random_state=RANDOM_STATE))
         ]
     )
     return pipeline

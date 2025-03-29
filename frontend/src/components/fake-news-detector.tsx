@@ -1,7 +1,6 @@
 'use client';
 
 import {
-  BarChart3,
   FileText,
   History,
   Layers,
@@ -11,7 +10,6 @@ import {
 import { useState } from 'react';
 import { BatchAnalyzer } from './batch-analyzer';
 import { HistoryView } from './history-view';
-import { InsightsView } from './insights-view';
 import { ModelTrainer } from './model-trainer';
 import { NewsAnalyzer } from './news-analyzer';
 import { ThemeToggle } from './theme-toggle';
@@ -46,10 +44,6 @@ export function FakeNewsDetector() {
             <Layers className="h-4 w-4 mr-2" />
             <span className="hidden sm:inline">Batch</span> Analysis
           </TabsTrigger>
-          <TabsTrigger value="insights" className="flex items-center">
-            <BarChart3 className="h-4 w-4 mr-2" />
-            Insights
-          </TabsTrigger>
           <TabsTrigger value="history" className="flex items-center">
             <History className="h-4 w-4 mr-2" />
             History
@@ -66,10 +60,6 @@ export function FakeNewsDetector() {
 
         <TabsContent value="batch">
           <BatchAnalyzer />
-        </TabsContent>
-
-        <TabsContent value="insights">
-          <InsightsView />
         </TabsContent>
 
         <TabsContent value="history">

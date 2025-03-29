@@ -1,20 +1,26 @@
 "use client"
 
+import { AlertTriangle, Download, FileText, Loader2, Upload, X } from "lucide-react"
 import type React from "react"
-
 import { useState } from "react"
+import { Alert, AlertDescription, AlertTitle } from "./ui/alert"
+import { Badge } from "./ui/badge"
 import { Button } from "./ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
-import { Alert, AlertDescription, AlertTitle } from "./ui/alert"
-import { AlertTriangle, Download, FileText, Loader2, Upload, X } from "lucide-react"
-import { Badge } from "./ui/badge"
 import { Progress } from "./ui/progress"
 import { Separator } from "./ui/separator"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs"
 import { Textarea } from "./ui/textarea"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table"
-import { mockNewsArticles } from "../lib/mock-data"
-import type { AnalysisResult } from "../lib/types"
+
+// Tipo simplificado de resultado de análisis (ya sin sentiment, emotionalTone, etc.)
+interface AnalysisResult {
+  id: string
+  text: string
+  prediction: "FAKE" | "REAL"
+  probability: number
+  keywords: string[]
+}
 
 export function BatchAnalyzer() {
   const [batchTexts, setBatchTexts] = useState<string[]>([])
@@ -45,26 +51,9 @@ export function BatchAnalyzer() {
     reader.onload = (event) => {
       try {
         const content = event.target?.result as string
-        // Try to parse as JSON first
-        try {
-          const jsonData = JSON.parse(content)
-          if (Array.isArray(jsonData)) {
-            // If it's an array of strings
-            if (typeof jsonData[0] === "string") {
-              setBatchTexts(jsonData)
-            }
-            // If it's an array of objects with a text property
-            else if (jsonData[0] && typeof jsonData[0].text === "string") {
-              setBatchTexts(jsonData.map((item) => item.text))
-            }
-          } else if (jsonData.texts && Array.isArray(jsonData.texts)) {
-            setBatchTexts(jsonData.texts)
-          }
-        } catch {
-          // Not JSON, treat as CSV or plain text
-          const lines = content.split(/\r?\n/).filter((line) => line.trim())
-          setBatchTexts(lines)
-        }
+        // Procesar el archivo como texto plano (cada línea un artículo) o JSON
+        const lines = content.split(/\r?\n/).filter((line) => line.trim())
+        setBatchTexts((prev) => [...prev, ...lines])
       } catch (err) {
         setError("Failed to parse file. Please check the format.")
         console.error(err)
@@ -74,9 +63,14 @@ export function BatchAnalyzer() {
   }
 
   const loadSampleBatch = () => {
-    setBatchTexts(mockNewsArticles.map((article) => article.text))
+    // Ejemplo: añade manualmente 2 textos de prueba
+    setBatchTexts([
+      "Breaking news: Government announces new policy to tackle inflation...",
+      "Shocking secret meeting reveals global conspiracy about microchips..."
+    ])
   }
 
+  // Lógica principal para llamar a la API
   const analyzeBatch = async () => {
     if (batchTexts.length === 0) {
       setError("Please add at least one text to the batch")
@@ -89,139 +83,80 @@ export function BatchAnalyzer() {
     setResults([])
 
     try {
-      const batchResults: AnalysisResult[] = []
+      // Construimos la lista de ítems
+      const newsItems = batchTexts.map((text, idx) => ({
+        id: `batch-item-${idx}`,
+        title: "",     // No tenemos título, puedes dejarlo vacío
+        text: text
+      }))
 
-      for (let i = 0; i < batchTexts.length; i++) {
-        // In a real application, this would be an API call to your backend
-        // const response = await fetch('/api/analyze', {
-        //   method: 'POST',
-        //   headers: { 'Content-Type': 'application/json' },
-        //   body: JSON.stringify({ text: batchTexts[i] }),
-        // })
-        // const data = await response.json()
+      // Llamada real a tu endpoint /api/v1/predict
+      setProgress(30)
+      const response = await fetch("/api/v1/predict", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ news_items: newsItems })
+      })
 
-        // Simulating API response for demonstration
-        await new Promise((resolve) => setTimeout(resolve, 500))
-
-        // Generate a mock result based on the text content
-        const text = batchTexts[i]
-        const isFake =
-          text.toLowerCase().includes("shocking") ||
-          text.toLowerCase().includes("secret") ||
-          text.toLowerCase().includes("conspiracy") ||
-          Math.random() > 0.6
-
-        const mockResult: AnalysisResult = {
-          id: `analysis-${Date.now()}-${i}`,
-          timestamp: new Date().toISOString(),
-          text: text.length > 100 ? `${text.substring(0, 100)}...` : text,
-          prediction: isFake ? "FAKE" : "REAL",
-          probability: isFake ? 0.7 + Math.random() * 0.25 : 0.65 + Math.random() * 0.3,
-          keywords: extractKeywords(text),
-          sentimentScore: Math.random() * 2 - 1, // Range from -1 to 1
-          emotionalTone: {
-            anger: Math.random() * 0.5,
-            fear: isFake ? Math.random() * 0.7 : Math.random() * 0.3,
-            joy: Math.random() * 0.4,
-            sadness: Math.random() * 0.3,
-            surprise: isFake ? Math.random() * 0.8 : Math.random() * 0.4,
-          },
-          sourceCredibility: isFake ? Math.random() * 0.4 : 0.6 + Math.random() * 0.4,
-          factualConsistency: isFake ? Math.random() * 0.5 : 0.7 + Math.random() * 0.3,
-        }
-
-        batchResults.push(mockResult)
-        setProgress(Math.round(((i + 1) / batchTexts.length) * 100))
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status} ${response.statusText}`)
       }
+
+      const data = await response.json()
+      setProgress(70)
+
+      // data.predictions es un array de objetos con { id, prediction, probability, keywords }
+      const batchResults: AnalysisResult[] = data.predictions.map((pred: any) => {
+        const originalText = batchTexts.find((t, i) => `batch-item-${i}` === pred.id) || ""
+        return {
+          id: pred.id,
+          text: originalText,
+          prediction: pred.prediction,
+          probability: pred.probability,
+          keywords: pred.keywords || []
+        }
+      })
 
       setResults(batchResults)
       setActiveTab("results")
+      setProgress(100)
+
     } catch (err) {
       setError("Failed to analyze the batch. Please try again.")
       console.error(err)
     } finally {
       setIsAnalyzing(false)
-      setProgress(100)
     }
   }
 
-  const extractKeywords = (text: string): string[] => {
-    // This is a simplified keyword extraction for demonstration
-    const words = text.toLowerCase().split(/\s+/)
-    const commonWords = new Set([
-      "the",
-      "a",
-      "an",
-      "and",
-      "or",
-      "but",
-      "in",
-      "on",
-      "at",
-      "to",
-      "for",
-      "with",
-      "by",
-      "about",
-      "as",
-      "of",
-    ])
-
-    // Filter out common words and get unique words
-    const uniqueWords = [
-      ...new Set(words.filter((word) => word.length > 3 && !commonWords.has(word) && /^[a-z]+$/.test(word))),
-    ]
-
-    // Select a random subset of words as "keywords"
-    return uniqueWords.sort(() => Math.random() - 0.5).slice(0, Math.min(5, uniqueWords.length))
-  }
-
-  const exportResults = () => {
-    if (results.length === 0) return
-
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(results, null, 2))
-    const downloadAnchorNode = document.createElement("a")
-    downloadAnchorNode.setAttribute("href", dataStr)
-    downloadAnchorNode.setAttribute("download", `batch-analysis-${new Date().toISOString().slice(0, 10)}.json`)
-    document.body.appendChild(downloadAnchorNode)
-    downloadAnchorNode.click()
-    downloadAnchorNode.remove()
-  }
-
+  // Cálculo de métricas simples (fake vs real, etc.)
   const getBatchSummary = () => {
     if (results.length === 0) return null
-
     const fakeCount = results.filter((r) => r.prediction === "FAKE").length
     const realCount = results.length - fakeCount
     const fakePercentage = (fakeCount / results.length) * 100
+    const averageConfidence = results.reduce((acc, r) => acc + r.probability, 0) / results.length
+
+    // Contar keywords
+    const keywordCounts = new Map<string, number>()
+    results.forEach((res) => {
+      res.keywords.forEach((kw) => {
+        keywordCounts.set(kw, (keywordCounts.get(kw) || 0) + 1)
+      })
+    })
+    const commonKeywords = Array.from(keywordCounts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([k]) => k)
 
     return {
       total: results.length,
       fakeCount,
       realCount,
       fakePercentage,
-      averageConfidence: results.reduce((acc, r) => acc + r.probability, 0) / results.length,
-      commonKeywords: getCommonKeywords(),
+      averageConfidence,
+      commonKeywords
     }
-  }
-
-  const getCommonKeywords = () => {
-    if (results.length === 0) return []
-
-    // Count keyword occurrences across all results
-    const keywordCounts = new Map<string, number>()
-
-    results.forEach((result) => {
-      result.keywords.forEach((keyword) => {
-        keywordCounts.set(keyword, (keywordCounts.get(keyword) || 0) + 1)
-      })
-    })
-
-    // Sort by frequency and return top 5
-    return Array.from(keywordCounts.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map((entry) => entry[0])
   }
 
   return (
@@ -234,6 +169,7 @@ export function BatchAnalyzer() {
           </TabsTrigger>
         </TabsList>
 
+        {/* TAB 1: INPUT */}
         <TabsContent value="input">
           <div className="grid md:grid-cols-2 gap-6">
             <Card>
@@ -335,23 +271,33 @@ export function BatchAnalyzer() {
           </div>
         </TabsContent>
 
+        {/* TAB 2: RESULTS */}
         <TabsContent value="results">
           {results.length > 0 && (
             <div className="space-y-6">
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-medium">Batch Analysis Results</h3>
-                <Button variant="outline" size="sm" onClick={exportResults}>
+                {/* Ejemplo de exportar resultados */}
+                <Button variant="outline" size="sm" onClick={() => {
+                  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(results, null, 2))
+                  const downloadAnchorNode = document.createElement("a")
+                  downloadAnchorNode.setAttribute("href", dataStr)
+                  downloadAnchorNode.setAttribute("download", `batch-analysis-${new Date().toISOString().slice(0, 10)}.json`)
+                  document.body.appendChild(downloadAnchorNode)
+                  downloadAnchorNode.click()
+                  downloadAnchorNode.remove()
+                }}>
                   <Download className="h-4 w-4 mr-2" />
                   Export Results
                 </Button>
               </div>
 
+              {/* Resumen */}
               <Card>
                 <CardContent className="pt-6">
                   <div className="grid md:grid-cols-2 gap-6">
                     <div>
                       <h4 className="text-sm font-medium mb-4">Summary Statistics</h4>
-
                       {getBatchSummary() && (
                         <div className="space-y-4">
                           <div className="grid grid-cols-2 gap-4">
@@ -362,7 +308,7 @@ export function BatchAnalyzer() {
                             <div className="bg-slate-100 dark:bg-slate-800 p-3 rounded-md text-center">
                               <p className="text-xs text-slate-500 dark:text-slate-400">Avg. Confidence</p>
                               <p className="text-2xl font-bold">
-                                {Math.round(getBatchSummary()?.averageConfidence! * 100)}%
+                                {Math.round(getBatchSummary()!.averageConfidence * 100)}%
                               </p>
                             </div>
                           </div>
@@ -371,24 +317,23 @@ export function BatchAnalyzer() {
                             <div className="flex justify-between text-xs">
                               <span>Real News</span>
                               <span>
-                                {getBatchSummary()?.realCount} articles (
-                                {Math.round(100 - getBatchSummary()?.fakePercentage!)}%)
+                                {getBatchSummary()!.realCount} articles (
+                                {Math.round(100 - getBatchSummary()!.fakePercentage)}%)
                               </span>
                             </div>
                             <Progress
-                              value={100 - getBatchSummary()?.fakePercentage!}
+                              value={100 - getBatchSummary()!.fakePercentage}
                               className="h-2 bg-red-100 dark:bg-red-900/20"
                             />
 
                             <div className="flex justify-between text-xs">
                               <span>Fake News</span>
                               <span>
-                                {getBatchSummary()?.fakeCount} articles (
-                                {Math.round(getBatchSummary()?.fakePercentage!)}%)
+                                {getBatchSummary()!.fakeCount} articles ({Math.round(getBatchSummary()!.fakePercentage)}%)
                               </span>
                             </div>
                             <Progress
-                              value={getBatchSummary()?.fakePercentage!}
+                              value={getBatchSummary()!.fakePercentage}
                               className="h-2 bg-green-100 dark:bg-green-900/20"
                             />
                           </div>
@@ -396,7 +341,7 @@ export function BatchAnalyzer() {
                           <div>
                             <h5 className="text-xs font-medium mb-2">Common Keywords</h5>
                             <div className="flex flex-wrap gap-2">
-                              {getBatchSummary()?.commonKeywords.map((keyword, index) => (
+                              {getBatchSummary()!.commonKeywords.map((keyword, index) => (
                                 <Badge key={index} variant="outline" className="bg-blue-50 dark:bg-blue-900/20">
                                   {keyword}
                                 </Badge>
@@ -410,11 +355,12 @@ export function BatchAnalyzer() {
                     <div>
                       <h4 className="text-sm font-medium mb-4">Distribution</h4>
                       <div className="h-[200px] bg-slate-100 dark:bg-slate-800 rounded-md flex items-end p-4 gap-1">
+                        {/* Distribución de la probabilidad en rangos de 0.1 */}
                         {Array.from({ length: 10 }).map((_, i) => {
                           const threshold = i / 10
                           const nextThreshold = (i + 1) / 10
                           const count = results.filter(
-                            (r) => r.probability >= threshold && r.probability < nextThreshold,
+                            (r) => r.probability >= threshold && r.probability < nextThreshold
                           ).length
                           const height = count > 0 ? (count / results.length) * 100 : 0
 
@@ -442,6 +388,7 @@ export function BatchAnalyzer() {
                 </CardContent>
               </Card>
 
+              {/* Tabla de resultados */}
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
@@ -450,33 +397,24 @@ export function BatchAnalyzer() {
                       <TableHead>Text</TableHead>
                       <TableHead className="w-[100px]">Prediction</TableHead>
                       <TableHead className="w-[100px]">Confidence</TableHead>
-                      <TableHead>Keywords</TableHead>
+                      <TableHead className="w-[120px]">Keywords</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {results.map((result, index) => (
-                      <TableRow key={result.id}>
+                    {results.map((res, index) => (
+                      <TableRow key={res.id}>
                         <TableCell>{index + 1}</TableCell>
-                        <TableCell className="max-w-[300px] truncate">{result.text}</TableCell>
                         <TableCell>
-                          <Badge variant={result.prediction === "FAKE" ? "destructive" : "default"}>
-                            {result.prediction}
+                          {res.text.length > 60 ? `${res.text.substring(0, 60)}...` : res.text}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={res.prediction === "FAKE" ? "destructive" : "default"}>
+                            {res.prediction}
                           </Badge>
                         </TableCell>
-                        <TableCell>{Math.round(result.probability * 100)}%</TableCell>
-                        <TableCell className="max-w-[200px]">
-                          <div className="flex flex-wrap gap-1">
-                            {result.keywords.slice(0, 3).map((keyword, i) => (
-                              <Badge key={i} variant="outline" className="text-xs">
-                                {keyword}
-                              </Badge>
-                            ))}
-                            {result.keywords.length > 3 && (
-                              <Badge variant="outline" className="text-xs">
-                                +{result.keywords.length - 3}
-                              </Badge>
-                            )}
-                          </div>
+                        <TableCell>{Math.round(res.probability * 100)}%</TableCell>
+                        <TableCell className="text-xs">
+                          {res.keywords.join(", ")}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -487,7 +425,6 @@ export function BatchAnalyzer() {
           )}
         </TabsContent>
       </Tabs>
-
       {error && (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
@@ -498,4 +435,3 @@ export function BatchAnalyzer() {
     </div>
   )
 }
-
