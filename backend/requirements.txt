@@ -1,0 +1,10 @@
+# requirements.txt
+fastapi
+uvicorn[standard] # Servidor ASGI para FastAPI
+scikit-learn
+pandas
+joblib
+pydantic
+python-dotenv # Para manejar variables de entorno (opcional)
+nltk # O spacy, si lo usaste para preprocesamiento
+# Agrega cualquier otra librería usada en tu pipeline (ej: numpy)
