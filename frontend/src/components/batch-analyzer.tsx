@@ -216,7 +216,7 @@ export function BatchAnalyzer() {
                   </div>
                 </div>
 
-                <Button variant="outline" onClick={loadSampleBatch} className="w-full">
+                <Button variant="secondary" onClick={loadSampleBatch} className="w-full">
                   Load Sample Batch
                 </Button>
               </CardContent>
@@ -235,7 +235,7 @@ export function BatchAnalyzer() {
                 ) : (
                   <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
                     {batchTexts.map((text, index) => (
-                      <div key={index} className="flex items-start gap-2 p-2 bg-slate-50 dark:bg-slate-900 rounded-md">
+                      <div key={index} className="flex items-start gap-2 p-2 bg-[hsl(var(--accent))] text-[hsl(var(--accent-foreground))] rounded-md">
                         <div className="flex-1 text-sm truncate">
                           {text.length > 60 ? `${text.substring(0, 60)}...` : text}
                         </div>
@@ -301,12 +301,12 @@ export function BatchAnalyzer() {
                       {getBatchSummary() && (
                         <div className="space-y-4">
                           <div className="grid grid-cols-2 gap-4">
-                            <div className="bg-slate-100 dark:bg-slate-800 p-3 rounded-md text-center">
-                              <p className="text-xs text-slate-500 dark:text-slate-400">Total Articles</p>
+                            <div className="bg-[hsl(var(--card))] p-3 rounded-md text-center">
+                              <p className="text-xs text-[hsl(var(--muted-foreground))]">Total Articles</p>
                               <p className="text-2xl font-bold">{getBatchSummary()?.total}</p>
                             </div>
-                            <div className="bg-slate-100 dark:bg-slate-800 p-3 rounded-md text-center">
-                              <p className="text-xs text-slate-500 dark:text-slate-400">Avg. Confidence</p>
+                            <div className="bg-[hsl(var(--card))] p-3 rounded-md text-center">
+                              <p className="text-xs text-[hsl(var(--muted-foreground))]">Avg. Confidence</p>
                               <p className="text-2xl font-bold">
                                 {Math.round(getBatchSummary()!.averageConfidence * 100)}%
                               </p>
@@ -323,7 +323,7 @@ export function BatchAnalyzer() {
                             </div>
                             <Progress
                               value={100 - getBatchSummary()!.fakePercentage}
-                              className="h-2 bg-red-100 dark:bg-red-900/20"
+                              className="h-2 bg-[hsl(var(--accent))]"
                             />
 
                             <div className="flex justify-between text-xs">
@@ -334,7 +334,7 @@ export function BatchAnalyzer() {
                             </div>
                             <Progress
                               value={getBatchSummary()!.fakePercentage}
-                              className="h-2 bg-green-100 dark:bg-green-900/20"
+                              className="h-2 bg-[hsl(var(--accent))]"
                             />
                           </div>
 
@@ -342,7 +342,7 @@ export function BatchAnalyzer() {
                             <h5 className="text-xs font-medium mb-2">Common Keywords</h5>
                             <div className="flex flex-wrap gap-2">
                               {getBatchSummary()!.commonKeywords.map((keyword, index) => (
-                                <Badge key={index} variant="outline" className="bg-blue-50 dark:bg-blue-900/20">
+                                <Badge key={index} variant="outline" className="bg-[hsl(var(--highlight-bg))] text-[hsl(var(--highlight-text))]">
                                   {keyword}
                                 </Badge>
                               ))}
@@ -354,7 +354,7 @@ export function BatchAnalyzer() {
 
                     <div>
                       <h4 className="text-sm font-medium mb-4">Distribution</h4>
-                      <div className="h-[200px] bg-slate-100 dark:bg-slate-800 rounded-md flex items-end p-4 gap-1">
+                      <div className="h-[200px] bg-[hsl(var(--card))] rounded-md flex items-end p-4 gap-1">
                         {/* Distribución de la probabilidad en rangos de 0.1 */}
                         {Array.from({ length: 10 }).map((_, i) => {
                           const threshold = i / 10
@@ -367,10 +367,10 @@ export function BatchAnalyzer() {
                           return (
                             <div
                               key={i}
-                              className="flex-1 bg-blue-500 rounded-t-sm relative group"
+                              className="flex-1 bg-[hsl(var(--primary))] rounded-t-sm relative group"
                               style={{ height: `${Math.max(height * 2, 4)}%` }}
                             >
-                              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 text-white text-xs px-2 py-1 rounded pointer-events-none whitespace-nowrap">
+                              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 transition-opacity bg-[hsl(var(--popover))] text-[hsl(var(--popover-foreground))] text-xs px-2 py-1 rounded pointer-events-none whitespace-nowrap">
                                 {count} articles ({Math.round(height)}%)
                               </div>
                             </div>

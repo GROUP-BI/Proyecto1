@@ -6,8 +6,7 @@ import {
   Download,
   Info,
   Loader2,
-  Save,
-  Share2,
+  Save
 } from 'lucide-react';
 import { useState } from 'react';
 import { analyzeNews as apiAnalyzeNews, NewsItem } from '../lib/api';
@@ -280,20 +279,6 @@ export function NewsAnalyzer() {
             </TooltipTrigger>
             <TooltipContent>
               <p>Export results as JSON</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="outline" disabled={!result}>
-                <Share2 className="h-4 w-4" />
-                <span className="sr-only md:not-sr-only md:ml-2">Share</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Share analysis results</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>

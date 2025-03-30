@@ -23,9 +23,10 @@ current_model_timestamp = "initial"
 try:
     # Intenta obtener algún metadato del pipeline cargado si existe
     _initial_pipeline = load_pipeline()
-    current_model_timestamp = getattr(_initial_pipeline, 'timestamp', "initial")
+    current_model_timestamp = getattr(_initial_pipeline, "timestamp", "initial")
 except:
-    pass # No hay pipeline inicial aún
+    pass  # No hay pipeline inicial aún
+
 
 def background_retrain_and_save(data: pd.DataFrame):
     """Tarea en segundo plano para reentrenar y guardar."""
@@ -37,24 +38,30 @@ def background_retrain_and_save(data: pd.DataFrame):
 
         # Añadir un timestamp al pipeline antes de guardar (para versionado simple)
         new_timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-        new_pipeline.timestamp = new_timestamp # Añade atributo al objeto pipeline
+        new_pipeline.timestamp = new_timestamp  # Añade atributo al objeto pipeline
 
         # Guardar el pipeline recién entrenado (sobrescribe el anterior)
         save_pipeline(new_pipeline)
 
         # Actualizar la variable global de timestamp
         current_model_timestamp = new_timestamp
-        logger.info(f"Reentrenamiento completado y guardado. Nuevo timestamp: {current_model_timestamp}. Métricas: {metrics}")
+        logger.info(
+            f"Reentrenamiento completado y guardado. Nuevo timestamp: {current_model_timestamp}. Métricas: {metrics}"
+        )
         # Aquí podrías notificar o loggear de forma más persistente
+        return metrics, new_timestamp
 
     except Exception as e:
-        logger.error(f"Error en la tarea de reentrenamiento en segundo plano: {e}", exc_info=True)
+        logger.error(
+            f"Error en la tarea de reentrenamiento en segundo plano: {e}", exc_info=True
+        )
 
 
-@router.post("/retrain", response_model=RetrainResponse, status_code=202, tags=["Retraining"]) # 202 Accepted
+@router.post(
+    "/retrain", response_model=RetrainResponse, status_code=202, tags=["Retraining"]
+)  # 202 Accepted
 async def retrain_model(
-    background_tasks: BackgroundTasks,
-    request: RetrainRequest = Body(...)
+    background_tasks: BackgroundTasks, request: RetrainRequest = Body(...)
 ) -> RetrainResponse:
     """
     Recibe nuevos datos etiquetados ('FAKE'/'REAL'), inicia un proceso de
@@ -62,7 +69,10 @@ async def retrain_model(
     y devuelve un mensaje de aceptación.
     """
     if not request.new_data:
-        raise HTTPException(status_code=400, detail="La lista de datos de reentrenamiento no puede estar vacía.")
+        raise HTTPException(
+            status_code=400,
+            detail="La lista de datos de reentrenamiento no puede estar vacía.",
+        )
 
     try:
         # Prepara los datos para la función de reentrenamiento
@@ -71,23 +81,29 @@ async def retrain_model(
 
         # Añade la tarea de reentrenamiento real al fondo
         # Pasamos el DataFrame directamente
-        background_tasks.add_task(background_retrain_and_save, new_data_df)
+        metricas, timestamp = background_retrain_and_save(new_data_df)
         logger.info("Tarea de reentrenamiento añadida al segundo plano.")
 
         # Devuelve una respuesta inmediata indicando que el proceso ha comenzado
         # Las métricas reales se calculan en segundo plano y se loggean.
         # La respuesta aquí no puede incluirlas directamente.
+        xd = "1.0.1" + str(timestamp)
         return RetrainResponse(
             message="Proceso de reentrenamiento iniciado en segundo plano. El nuevo modelo estará disponible pronto.",
-            precision=None, # Métricas no disponibles inmediatamente
-            recall=None,
-            f1_score=None,
-            new_model_version=f"update pending..." # El timestamp real se asigna en background
+            precision=metricas["precision"],  # Métricas no disponibles inmediatamente
+            recall=metricas["recall"],
+            f1_score=metricas["f1_score"],
+            new_model_version=xd,  # El timestamp real se asigna en background
         )
 
-    except ValueError as ve: # Errores de validación de datos
-         logger.error(f"Error en los datos de reentrenamiento: {ve}")
-         raise HTTPException(status_code=400, detail=f"Error en los datos de reentrenamiento: {ve}")
+    except ValueError as ve:  # Errores de validación de datos
+        logger.error(f"Error en los datos de reentrenamiento: {ve}")
+        raise HTTPException(
+            status_code=400, detail=f"Error en los datos de reentrenamiento: {ve}"
+        )
     except Exception as e:
         logger.exception("Error inesperado al iniciar el reentrenamiento.")
-        raise HTTPException(status_code=500, detail=f"Error interno del servidor al iniciar reentrenamiento: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error interno del servidor al iniciar reentrenamiento: {e}",
+        )

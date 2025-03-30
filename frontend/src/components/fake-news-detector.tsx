@@ -2,14 +2,12 @@
 
 import {
   FileText,
-  History,
   Layers,
   Settings,
-  Zap,
+  Zap
 } from 'lucide-react';
 import { useState } from 'react';
 import { BatchAnalyzer } from './batch-analyzer';
-import { HistoryView } from './history-view';
 import { ModelTrainer } from './model-trainer';
 import { NewsAnalyzer } from './news-analyzer';
 import { ThemeToggle } from './theme-toggle';
@@ -44,10 +42,6 @@ export function FakeNewsDetector() {
             <Layers className="h-4 w-4 mr-2" />
             <span className="hidden sm:inline">Batch</span> Analysis
           </TabsTrigger>
-          <TabsTrigger value="history" className="flex items-center">
-            <History className="h-4 w-4 mr-2" />
-            History
-          </TabsTrigger>
           <TabsTrigger value="train" className="flex items-center">
             <Settings className="h-4 w-4 mr-2" />
             <span className="hidden sm:inline">Model</span> Training
@@ -60,10 +54,6 @@ export function FakeNewsDetector() {
 
         <TabsContent value="batch">
           <BatchAnalyzer />
-        </TabsContent>
-
-        <TabsContent value="history">
-          <HistoryView />
         </TabsContent>
 
         <TabsContent value="train">

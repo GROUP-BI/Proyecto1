@@ -88,16 +88,13 @@ def build_pipeline() -> Pipeline:
             ("tfidf", TfidfVectorizer(max_features=TFIDF_MAX_FEATURES)),
             (
                 "clf",
-                (
-                    "clf",
-                    RandomForestClassifier(
-                        random_state=RANDOM_STATE,
-                        n_estimators=100,
-                        max_depth=None,
-                        min_samples_split=6,
-                        max_features="sqrt",
-                        n_jobs=-1,
-                    ),
+                RandomForestClassifier(
+                    random_state=RANDOM_STATE,
+                    n_estimators=100,
+                    max_depth=None,
+                    min_samples_split=6,
+                    max_features="sqrt",
+                    n_jobs=-1,
                 ),
             ),
         ]
@@ -253,13 +250,9 @@ def retrain_pipeline_with_new_data(data: pd.DataFrame) -> tuple[Pipeline, dict]:
         metrics = {
             # Usamos average='weighted' para promediar métricas por clase,
             # o podrías usar average='binary', pos_label=1 si te interesa la clase REAL (1)
-            "precision": precision_score(
-                y_retrain_series, y_pred_retrain, average="weighted"
-            ),
-            "recall": recall_score(
-                y_retrain_series, y_pred_retrain, average="weighted"
-            ),
-            "f1_score": f1_score(y_retrain_series, y_pred_retrain, average="weighted"),
+            "precision": precision_score(y_retrain_series, y_pred_retrain),
+            "recall": recall_score(y_retrain_series, y_pred_retrain),
+            "f1_score": f1_score(y_retrain_series, y_pred_retrain),
         }
         logger.info(f"Métricas de reentrenamiento (sobre datos de entrada): {metrics}")
 

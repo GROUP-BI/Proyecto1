@@ -2,22 +2,17 @@
 
 import type React from "react"
 
-import { AlertTriangle, CheckCircle, FileText, Info, Loader2, Upload } from "lucide-react"
+import { AlertTriangle, CheckCircle, FileText, Loader2, Upload } from "lucide-react"
 import { useState } from "react"
 import { retrainModel, TrainingItem } from "../lib/api"
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert"
 import { Button } from "./ui/button"
 import { Card, CardContent } from "./ui/card"
-import { Input } from "./ui/input"
 import { Label } from "./ui/label"
 import { Progress } from "./ui/progress"
-import { RadioGroup, RadioGroupItem } from "./ui/radio-group"
 import { Separator } from "./ui/separator"
-import { Switch } from "./ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs"
 import { Textarea } from "./ui/textarea"
-
-type TrainingMethod = "incremental" | "full" | "transfer"
 type TrainingResult = {
   success: boolean
   metrics: {
@@ -31,18 +26,12 @@ type TrainingResult = {
 }
 
 export function ModelTrainer() {
-  const [trainingMethod, setTrainingMethod] = useState<TrainingMethod>("incremental")
   const [trainingData, setTrainingData] = useState("")
   const [file, setFile] = useState<File | null>(null)
   const [isTraining, setIsTraining] = useState(false)
   const [trainingProgress, setTrainingProgress] = useState(0)
   const [result, setResult] = useState<TrainingResult | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [advancedOptions, setAdvancedOptions] = useState(false)
-  const [epochs, setEpochs] = useState("10")
-  const [learningRate, setLearningRate] = useState("0.001")
-  const [batchSize, setBatchSize] = useState("32")
-  const [validationSplit, setValidationSplit] = useState("0.2")
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -50,37 +39,6 @@ export function ModelTrainer() {
     }
   }
 
-  const simulateTraining = async () => {
-    setIsTraining(true)
-    setTrainingProgress(0)
-    setError(null)
-
-    try {
-      // Simulate progress updates
-      for (let i = 0; i <= 100; i += 5) {
-        await new Promise((resolve) => setTimeout(resolve, 200))
-        setTrainingProgress(i)
-      }
-
-      // Mock result - in production this would come from your API
-      setResult({
-        success: true,
-        metrics: {
-          precision: 0.85 + Math.random() * 0.1,
-          recall: 0.82 + Math.random() * 0.1,
-          f1Score: 0.83 + Math.random() * 0.1,
-          accuracy: 0.88 + Math.random() * 0.1,
-        },
-        modelVersion: `v${Math.floor(Math.random() * 10)}.${Math.floor(Math.random() * 10)}.${Math.floor(Math.random() * 10)}`,
-        trainingTime: Math.floor(Math.random() * 120) + 60, // 60-180 seconds
-      })
-    } catch (err) {
-      setError("Failed to train the model. Please try again.")
-      console.error(err)
-    } finally {
-      setIsTraining(false)
-    }
-  }
 
   const trainModel = async () => {
     if (!file && !trainingData.trim()) {
@@ -99,55 +57,201 @@ export function ModelTrainer() {
       if (trainingData.trim()) {
         // Si hay datos en formato texto, intentamos parsearlo
         try {
-          // Asumimos que los datos de texto están en formato CSV o JSON
-          // Aquí solo tomamos un enfoque simple: cada línea es un item con texto y etiqueta separados por una coma
-          trainingItems = trainingData.split('\n')
-            .filter(line => line.trim())
-            .map(line => {
-              const [text, labelRaw] = line.split(',').map(item => item.trim());
-              const label = labelRaw.toUpperCase() as 'FAKE' | 'REAL';
+          // Asumimos que los datos siguen el formato: ID;Label;Titulo;Descripcion;Fecha
+          // Ignoramos la primera línea si contiene encabezados
+          const lines = trainingData.split('\n')
+            .map(line => line.trim())
+            .filter(line => line.length > 0);
+
+          if (lines.length === 0) {
+            throw new Error("No se encontraron datos válidos en el texto ingresado");
+          }
+
+          // Detectar si la primera línea contiene encabezados
+          let startIndex = 0;
+          const firstLine = lines[0].toUpperCase();
+          if (firstLine.includes('ID') &&
+            (firstLine.includes('LABEL') || firstLine.includes('ETIQUETA')) &&
+            firstLine.includes('TITULO') &&
+            (firstLine.includes('DESCRIPCION') || firstLine.includes('CONTENIDO')) &&
+            firstLine.includes('FECHA')) {
+            startIndex = 1;
+          }
+
+          // Detectar el separador (coma o punto y coma)
+          let separator = ';';
+          if (lines[0].includes(',') && !lines[0].includes(';')) {
+            separator = ',';
+          }
+
+          const processedLines = [];
+
+          // Procesar cada línea
+          for (let i = startIndex; i < lines.length; i++) {
+            const line = lines[i];
+            const parts = line.split(separator).map(part => part.trim());
+
+            if (parts.length < 5) {
+              console.warn(`La línea ${i + 1} tiene solo ${parts.length} columnas: ${line}`);
+              continue; // Ignorar líneas con formato incorrecto
+            }
+
+            try {
+              const [id, labelRaw, titulo, descripcion, fecha] = parts;
+              // Convertir el valor a 'FAKE' o 'REAL' según sea 0 o 1
+              const label = (labelRaw.trim() === '0') ? 'FAKE' as const : (labelRaw.trim() === '1' ? 'REAL' as const : '');
+
               if (label !== 'FAKE' && label !== 'REAL') {
-                throw new Error(`Etiqueta inválida: ${labelRaw}. Debe ser FAKE o REAL.`);
+                console.warn(`Etiqueta inválida en línea ${i + 1}: "${labelRaw}". Se esperaba 0 o 1.`);
+                continue; // Ignorar esta línea y continuar con las demás
               }
-              return { text, label };
-            });
+
+              // Creamos el texto combinando título y descripción
+              const text = `${titulo}. ${descripcion}`;
+              processedLines.push({ text, label });
+            } catch (lineError) {
+              console.warn(`Error al procesar línea ${i + 1}: ${lineError}`);
+              // Continuar con las siguientes líneas
+            }
+          }
+
+          if (processedLines.length === 0) {
+            throw new Error("No se pudieron procesar datos válidos del texto ingresado. Verifica el formato.");
+          }
+
+          trainingItems = processedLines;
+          console.log(`Procesadas ${trainingItems.length} líneas válidas de un total de ${lines.length - startIndex} líneas de datos.`);
         } catch (e) {
-          throw new Error("Formato de datos de texto inválido. Cada línea debe tener el formato: 'texto,FAKE/REAL'");
+          console.error("Error detallado:", e);
+          throw new Error(e instanceof Error ? e.message : "Formato de datos inválido. Cada línea debe seguir el formato: ID;Label;Titulo;Descripcion;Fecha");
         }
       }
       else if (file) {
-        // Procesamiento de archivo (esto es simplificado, en una app real necesitarías procesar el CSV/JSON)
-        // En este ejemplo simulamos la lectura
+        // Procesamiento de archivo CSV con formato específico
         setTrainingProgress(30);
-        await new Promise(resolve => setTimeout(resolve, 500));
 
-        // Simulación de procesamiento de archivo
-        trainingItems = [
-          { text: "Este es un ejemplo extraído del archivo", label: "REAL" as 'REAL' },
-          { text: "Otro ejemplo del archivo subido", label: "FAKE" as 'FAKE' },
-        ];
-        setTrainingProgress(60);
+        try {
+          const text = await file.text();
+          // Eliminar BOM si existe y espacios en blanco
+          const cleanText = text.replace(/^\uFEFF/, '').trim();
+          const lines = cleanText.split('\n')
+            .map(line => line.trim())
+            .filter(line => line.length > 0);
+
+          if (lines.length === 0) {
+            throw new Error("El archivo está vacío o no contiene datos válidos");
+          }
+
+          // Verificar encabezados - ser más flexible con la detección
+          const firstLine = lines[0].toUpperCase();
+          const requiredHeaders = ["ID", "LABEL", "TITULO", "DESCRIPCION", "FECHA"];
+
+          // Detectar el tipo de separador (coma o punto y coma)
+          let separator = ';';
+          if (firstLine.includes(',') && !firstLine.includes(';')) {
+            separator = ',';
+          }
+
+          const headers = firstLine.split(separator).map(h => h.trim());
+
+          // Comprobar si los encabezados requeridos están presentes (ignorando mayúsculas/minúsculas)
+          const headersValid = requiredHeaders.every(required =>
+            headers.some(h => h.toUpperCase() === required)
+          );
+
+          if (!headersValid) {
+            console.error("Encabezados encontrados:", headers);
+            throw new Error(`Encabezados incorrectos. Se requieren: ${requiredHeaders.join(', ')}. Encabezados encontrados: ${headers.join(', ')}`);
+          }
+
+          // Procesar las líneas de datos (ignorando encabezados)
+          const processedLines = [];
+
+          for (let i = 1; i < lines.length; i++) {
+            const line = lines[i];
+            const parts = line.split(separator).map(part => part.trim());
+
+            if (parts.length < 5) {
+              console.warn(`La línea ${i + 1} tiene solo ${parts.length} columnas: ${line}`);
+              continue; // Ignorar líneas con formato incorrecto en lugar de fallar
+            }
+
+            try {
+              const [id, labelRaw, titulo, descripcion, fecha] = parts;
+              // Convertir el valor a 'FAKE' o 'REAL' según sea 0 o 1
+              const label = (labelRaw.trim() === '0') ? 'FAKE' as const : (labelRaw.trim() === '1' ? 'REAL' as const : '');
+
+              if (label !== 'FAKE' && label !== 'REAL') {
+                console.warn(`Etiqueta inválida en línea ${i + 1}: "${labelRaw}". Se esperaba 0 o 1.`);
+                continue; // Ignorar esta línea y continuar con las demás
+              }
+
+              // Creamos el texto combinando título y descripción
+              const text = `${titulo}. ${descripcion}`;
+              processedLines.push({ text, label });
+            } catch (lineError) {
+              console.warn(`Error al procesar línea ${i + 1}: ${lineError}`);
+              // Continuar con las siguientes líneas
+            }
+          }
+
+          if (processedLines.length === 0) {
+            throw new Error("No se pudieron procesar datos válidos del archivo. Verifica el formato.");
+          }
+
+          trainingItems = processedLines;
+          console.log(`Procesadas ${trainingItems.length} líneas válidas de un total de ${lines.length - 1} líneas de datos.`);
+
+          setTrainingProgress(60);
+        } catch (e) {
+          console.error("Error detallado:", e);
+          throw new Error(e instanceof Error ? e.message : "Error al procesar el archivo CSV");
+        }
+      }
+
+      // Verificar que tengamos datos
+      if (trainingItems.length === 0) {
+        throw new Error("No se encontraron datos válidos para el entrenamiento");
       }
 
       // Enviar datos a la API
       setTrainingProgress(80);
 
-      const data = await retrainModel(trainingItems);
+      try {
+        // Registrar el tiempo de inicio
+        const startTime = performance.now();
 
-      // Establecer resultado basado en la respuesta de la API
-      setResult({
-        success: true,
-        metrics: {
-          precision: data.precision || 0.0,
-          recall: data.recall || 0.0,
-          f1Score: data.f1_score || 0.0,
-          accuracy: 0.0, // La API no devuelve esto, así que lo dejamos en 0
-        },
-        modelVersion: data.new_model_version || "pending update...",
-        trainingTime: 0, // La API no proporciona este dato
-      });
+        // Llamar a la API de reentrenamiento
+        const data = await retrainModel(trainingItems);
 
-      setTrainingProgress(100);
+        // Calcular el tiempo que tomó el entrenamiento (en segundos)
+        const endTime = performance.now();
+        const trainingTimeSeconds = (endTime - startTime) / 1000;
+
+        console.log("Respuesta completa de la API:", data);
+        console.log(`Tiempo de entrenamiento calculado: ${trainingTimeSeconds.toFixed(2)} segundos`);
+
+        // Establecer resultado basado en la respuesta de la API
+        setResult({
+          success: true,
+          metrics: {
+            precision: data.precision || 0.0,
+            recall: data.recall || 0.0,
+            f1Score: data.f1_score || 0.0,
+            accuracy: data.accuracy || 0.0,
+          },
+          modelVersion: data.new_model_version || "pending update...",
+          // Usar el tiempo calculado localmente
+          trainingTime: trainingTimeSeconds,
+        });
+
+        setTrainingProgress(100);
+      } catch (apiError) {
+        console.error("Error en la API de reentrenamiento:", apiError);
+        throw new Error(apiError instanceof Error
+          ? `Error de API: ${apiError.message}`
+          : "Error en la comunicación con el servidor de reentrenamiento.");
+      }
     } catch (err) {
       console.error("Error:", err);
       setError(err instanceof Error ? err.message : "Error en el reentrenamiento. Inténtalo de nuevo.");
@@ -167,116 +271,8 @@ export function ModelTrainer() {
         </AlertDescription>
       </Alert>
 
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium">Select Retraining Method</h3>
-
-          <RadioGroup
-            value={trainingMethod}
-            onValueChange={(value) => setTrainingMethod(value as TrainingMethod)}
-            className="space-y-3"
-          >
-            <div className="flex items-start space-x-2">
-              <RadioGroupItem value="incremental" id="incremental" />
-              <div className="grid gap-1.5">
-                <Label htmlFor="incremental" className="font-medium">
-                  Incremental Training
-                </Label>
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  Updates the existing model with new data while preserving previous knowledge. Best for regular updates
-                  with small datasets.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start space-x-2">
-              <RadioGroupItem value="full" id="full" />
-              <div className="grid gap-1.5">
-                <Label htmlFor="full" className="font-medium">
-                  Full Retraining
-                </Label>
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  Rebuilds the model from scratch using all available data. Best when significant changes in data
-                  patterns are expected.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start space-x-2">
-              <RadioGroupItem value="transfer" id="transfer" />
-              <div className="grid gap-1.5">
-                <Label htmlFor="transfer" className="font-medium">
-                  Transfer Learning
-                </Label>
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  Fine-tunes the model on domain-specific data while leveraging pre-trained weights. Best for
-                  specialized use cases with limited training data.
-                </p>
-              </div>
-            </div>
-          </RadioGroup>
-
-          <div className="flex items-center space-x-2 pt-2">
-            <Switch id="advanced-options" checked={advancedOptions} onCheckedChange={setAdvancedOptions} />
-            <Label htmlFor="advanced-options">Show advanced options</Label>
-          </div>
-
-          {advancedOptions && (
-            <div className="grid grid-cols-2 gap-4 p-4 border border-slate-200 dark:border-slate-700 rounded-md">
-              <div className="space-y-2">
-                <Label htmlFor="epochs">Epochs</Label>
-                <Input
-                  id="epochs"
-                  type="number"
-                  min="1"
-                  max="100"
-                  value={epochs}
-                  onChange={(e) => setEpochs(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="learning-rate">Learning Rate</Label>
-                <Input
-                  id="learning-rate"
-                  type="number"
-                  min="0.0001"
-                  max="0.1"
-                  step="0.0001"
-                  value={learningRate}
-                  onChange={(e) => setLearningRate(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="batch-size">Batch Size</Label>
-                <Input
-                  id="batch-size"
-                  type="number"
-                  min="1"
-                  max="256"
-                  value={batchSize}
-                  onChange={(e) => setBatchSize(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="validation-split">Validation Split</Label>
-                <Input
-                  id="validation-split"
-                  type="number"
-                  min="0.1"
-                  max="0.5"
-                  step="0.05"
-                  value={validationSplit}
-                  onChange={(e) => setValidationSplit(e.target.value)}
-                />
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div>
+      <Card>
+        <CardContent className="pt-6">
           <Tabs defaultValue="file">
             <TabsList className="grid w-full grid-cols-2 mb-4">
               <TabsTrigger value="file">Upload File</TabsTrigger>
@@ -284,46 +280,76 @@ export function ModelTrainer() {
             </TabsList>
 
             <TabsContent value="file">
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg p-6 text-center">
-                    <FileText className="h-10 w-10 text-slate-400 mx-auto mb-4" />
-                    <h4 className="text-sm font-medium mb-2">Upload Training Data</h4>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-                      Upload a CSV file with labeled news data. The file should include text content and a "fake" label
-                      column.
-                    </p>
-                    <input
-                      type="file"
-                      id="file-upload"
-                      accept=".csv,.json"
-                      className="hidden"
-                      onChange={handleFileChange}
-                    />
-                    <Button
-                      variant="outline"
-                      onClick={() => document.getElementById("file-upload")?.click()}
-                      className="mb-2"
-                    >
-                      <Upload className="h-4 w-4 mr-2" />
-                      Select File
-                    </Button>
-                    {file && <p className="text-xs text-slate-600 dark:text-slate-300 mt-2">Selected: {file.name}</p>}
+              <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg p-6 text-center">
+                <FileText className="h-10 w-10 text-slate-400 mx-auto mb-4" />
+                <h4 className="text-sm font-medium mb-2">Upload Training Data</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
+                  Upload a CSV file with labeled news data. The file must have the following headers:
+                </p>
+                <div className="my-2 font-mono text-xs bg-slate-100 dark:bg-slate-800 p-2 rounded">
+                  ID;Label;Titulo;Descripcion;Fecha
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+                  Donde Label debe ser 0 (FAKE) o 1 (REAL) y Fecha en formato DD/MM/YYYY.
+                </p>
+                <div className="mt-2 mb-4 text-xs bg-orange-50 dark:bg-orange-950 p-2 rounded border border-orange-200 dark:border-orange-800">
+                  <p className="font-medium text-orange-700 dark:text-orange-400">Solución de problemas comunes:</p>
+                  <ul className="list-disc pl-4 mt-1 text-slate-700 dark:text-slate-300">
+                    <li>Asegúrate de que el archivo use punto y coma (;) como separador</li>
+                    <li>Verifica que cada línea tenga exactamente 5 columnas</li>
+                    <li>La etiqueta debe ser 0 o 1, sin espacios adicionales</li>
+                    <li>El archivo debe tener codificación UTF-8</li>
+                  </ul>
+                </div>
+
+                <input
+                  type="file"
+                  id="file-upload"
+                  accept=".csv"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+                <Button variant="outline" onClick={() => document.getElementById("file-upload")?.click()}>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Select File
+                </Button>
+                {file && (
+                  <div className="mt-2 text-sm">
+                    Selected: <span className="font-medium">{file.name}</span>
                   </div>
-                </CardContent>
-              </Card>
+                )}
+              </div>
             </TabsContent>
 
             <TabsContent value="text">
-              <div className="space-y-4">
-                <Label htmlFor="training-data">Enter labeled training data (JSON format)</Label>
+              <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg p-6">
+                <Label htmlFor="training-data" className="text-sm font-medium mb-2 block">
+                  Enter training data
+                </Label>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
+                  Each line should follow the CSV format with semicolon separators:
+                </p>
+                <div className="my-2 font-mono text-xs bg-slate-100 dark:bg-slate-800 p-2 rounded">
+                  ID;Label;Titulo;Descripcion;Fecha
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
+                  Donde Label debe ser 0 (FAKE) o 1 (REAL) y Fecha en formato DD/MM/YYYY.
+                </p>
+                <div className="mt-2 mb-2 text-xs bg-orange-50 dark:bg-orange-950 p-2 rounded border border-orange-200 dark:border-orange-800">
+                  <p className="font-medium text-orange-700 dark:text-orange-400">Consejos:</p>
+                  <ul className="list-disc pl-4 mt-1 text-slate-700 dark:text-slate-300">
+                    <li>Usa punto y coma (;) como separador entre columnas</li>
+                    <li>Cada línea debe tener exactamente 5 columnas</li>
+                    <li>La primera línea puede contener encabezados que se ignorarán</li>
+                  </ul>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
+                  Example: <code>1;0;Titular falso;Contenido de la noticia falsa;02/06/2023</code>
+                </p>
                 <Textarea
                   id="training-data"
-                  placeholder={`[
-  {"text": "Government announces new policy", "fake": false},
-  {"text": "Secret meeting reveals conspiracy", "fake": true}
-]`}
                   className="min-h-[200px] font-mono text-sm"
+                  placeholder="1;0;Titular falso;Contenido de la noticia falsa;02/06/2023"
                   value={trainingData}
                   onChange={(e) => setTrainingData(e.target.value)}
                 />
@@ -331,41 +357,76 @@ export function ModelTrainer() {
             </TabsContent>
           </Tabs>
 
-          <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md">
-            <div className="flex items-center mb-1">
-              <Info className="h-4 w-4 mr-2 text-blue-500" />
-              <h4 className="text-sm font-medium text-blue-700 dark:text-blue-300">Data Format Requirements</h4>
+          <div className="mt-6 space-y-4">
+            <Separator />
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <h4 className="text-sm font-medium">Ready to Train</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  The model will be trained with your data to improve prediction accuracy.
+                </p>
+              </div>
+              <Button
+                onClick={trainModel}
+                disabled={isTraining || (!file && !trainingData.trim())}
+                className="min-w-[120px]"
+              >
+                {isTraining ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Training...
+                  </>
+                ) : (
+                  "Train Model"
+                )}
+              </Button>
             </div>
-            <ul className="text-xs text-blue-600 dark:text-blue-300 space-y-1 list-disc pl-4">
-              <li>CSV files must have "text" and "fake" columns</li>
-              <li>JSON data must be an array of objects with "text" and "fake" properties</li>
-              <li>The "fake" field should be a boolean (true/false)</li>
-              <li>For best results, include at least 50 examples</li>
-            </ul>
+            {isTraining && <Progress value={trainingProgress} className="h-2" />}
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {error && (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription className="space-y-2">
+            <p>{error}</p>
+            <div className="mt-2 text-xs">
+              <p className="font-medium">Posibles soluciones:</p>
+              <ul className="list-disc pl-4 mt-1">
+                <li>Verifica que el archivo siga el formato especificado con 5 columnas separadas por punto y coma (;)</li>
+                <li>Comprueba que la columna Label contenga valores 0 o 1</li>
+                <li>Asegúrate de que no haya filas vacías o con formato incorrecto</li>
+                <li>Si tienes el archivo abierto en Excel, guárdalo como CSV (delimitado por punto y coma)</li>
+              </ul>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-2"
+              onClick={() => {
+                // Convertir a un formato tabular para facilitar la depuración
+                let datos = '';
+                try {
+                  if (file) {
+                    datos = `Archivo: "${file.name}" - Tamaño: ${file.size} bytes - Tipo: ${file.type}`;
+                  } else if (trainingData) {
+                    const lineas = trainingData.split('\n').filter(l => l.trim()).length;
+                    datos = `Texto ingresado: ${lineas} líneas`;
+                  }
+                } catch (e) {
+                  datos = 'No se pudo procesar la información para depuración';
+                }
+                console.log('Información de depuración:', datos);
+                alert(`Información para soporte técnico:\n${datos}\n\nConsulta la consola del navegador para más detalles.`);
+              }}
+            >
+              Mostrar info de depuración
+            </Button>
+          </AlertDescription>
         </Alert>
       )}
-
-      <Button onClick={trainModel} disabled={isTraining || (!file && !trainingData.trim())} className="w-full">
-        {isTraining ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Training Model... {trainingProgress}%
-          </>
-        ) : (
-          "Train Model"
-        )}
-      </Button>
-
-      {isTraining && <Progress value={trainingProgress} className="h-2" />}
 
       {result && (
         <Card>
@@ -383,7 +444,9 @@ export function ModelTrainer() {
 
               <div className="space-y-2">
                 <p className="text-sm text-slate-600 dark:text-slate-400">Training Time</p>
-                <p className="text-lg font-bold">{result.trainingTime} seconds</p>
+                <p className="text-lg font-bold">
+                  {result.trainingTime ? `${result.trainingTime.toFixed(2)} seconds` : 'No disponible'}
+                </p>
               </div>
             </div>
 
@@ -415,8 +478,14 @@ export function ModelTrainer() {
               <div className="space-y-2">
                 <p className="text-sm text-slate-600 dark:text-slate-400">Accuracy</p>
                 <div className="flex items-center">
-                  <Progress value={result.metrics.accuracy * 100} className="h-2 mr-2" />
-                  <span className="text-sm font-medium">{(result.metrics.accuracy * 100).toFixed(1)}%</span>
+                  {result.metrics.accuracy > 0 ? (
+                    <>
+                      <Progress value={result.metrics.accuracy * 100} className="h-2 mr-2" />
+                      <span className="text-sm font-medium">{(result.metrics.accuracy * 100).toFixed(1)}%</span>
+                    </>
+                  ) : (
+                    <span className="text-sm text-slate-500">No disponible</span>
+                  )}
                 </div>
               </div>
             </div>
@@ -425,27 +494,38 @@ export function ModelTrainer() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <p className="text-sm font-medium">Performance Change</p>
+                <p className="text-sm font-medium">Estado del modelo</p>
                 <div className="flex items-center text-green-500">
                   <CheckCircle className="h-4 w-4 mr-1" />
-                  <span className="text-sm">+{(Math.random() * 5).toFixed(1)}% improvement</span>
+                  <span className="text-sm">Activo y listo para predicciones</span>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <p className="text-sm font-medium">Model Status</p>
-                <div className="flex items-center text-green-500">
-                  <CheckCircle className="h-4 w-4 mr-1" />
-                  <span className="text-sm">Active and serving predictions</span>
-                </div>
+                <p className="text-sm font-medium">Información adicional</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    console.log("Resultado completo del entrenamiento:", result);
+                    alert("La información detallada del entrenamiento está disponible en la consola del navegador (F12)");
+                  }}
+                >
+                  Ver detalles completos
+                </Button>
               </div>
             </div>
 
             <Alert className="mt-4">
               <CheckCircle className="h-4 w-4" />
-              <AlertTitle>Model Updated</AlertTitle>
+              <AlertTitle>Modelo Actualizado</AlertTitle>
               <AlertDescription>
-                The new model has been deployed and will be used for all future predictions.
+                El nuevo modelo ha sido desplegado y se utilizará para todas las predicciones futuras.
+                {!result.metrics.accuracy && (
+                  <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
+                    Nota: La métrica de precisión (accuracy) puede no estar disponible si el servidor no la proporciona.
+                  </p>
+                )}
               </AlertDescription>
             </Alert>
           </CardContent>

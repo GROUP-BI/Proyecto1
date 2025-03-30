@@ -38,6 +38,8 @@ export type RetrainingResponse = {
   recall: number;
   f1_score: number;
   new_model_version: string;
+  accuracy?: number;
+  training_time?: number;
 };
 
 // Configuración para las peticiones fetch
